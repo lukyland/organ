@@ -338,7 +338,7 @@
   <script>
     // --- KONFIGURACE ---
     // SEM VLOŽ PŘESNOU URL WEBOVÉ APLIKACE Z APPS SCRIPTU:
-    const API_URL = "https://script.google.com/macros/s/AKfycbx72-Lt-ww9dNnqEvg3WyYpOq1-nAQtyyUdlS8m0oOjW1WpmbCZcDJQQrNydfzLpVtZ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbys-KpZjqeQrQrZGVFiN_tUr_EvceG2Bmkg7gBK63eqv4SP2UuIjwGI6E39kIwWKBo/exec";
 
     let currentUser = null;
     let appData = { users: [], classes: [], classMembers: [], grades: [], homeworks: [], schedule: [] };
@@ -375,9 +375,22 @@
         const res = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
+          redirect: "follow", // DŮLEŽITÉ: Následuje přesměrování Google Apps Scriptu
           body: JSON.stringify(payload)
         });
-        const data = await res.json();
+
+        const rawText = await res.text();
+        
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (jsonErr) {
+          console.error("Server nevrátil JSON, ale:", rawText);
+          showLoader(false);
+          showAlert("Chyba oprávnění Google Apps Scriptu (zkontroluj přístup 'Kdokoli')", true);
+          return { success: false, error: "Neplatná odpověď serveru." };
+        }
+
         showLoader(false);
         return data;
       } catch (err) {
