@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ORGAN - Školní informační systém</title>
+  <style>
+    :root {
+      --bg: #0f0f11;
+      --card-bg: #1a1a1f;
+      --border: #333338;
+      --text: #f0f0f5;
+      --text-muted: #9595a0;
+      --primary: #ff6600;
+      --primary-hover: #e05500;
+      --input-bg: #121215;
+      --danger: #ff4757;
+      --success: #2ed573;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8f9fa;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --text-muted: #718096;
+      --primary: #ff6600;
+      --primary-hover: #e05500;
+      --input-bg: #f7fafc;
+      --danger: #e53e3e;
+      --success: #38a169;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; transition: background-color 0.2s; }
+
+    header {
+      background-color: var(--card-bg);
+      border-bottom: 2px solid var(--primary);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand { font-size: 1.4rem; font-weight: 900; letter-spacing: 2px; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+    .brand span { font-size: 0.8rem; background: var(--primary); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+
+    .header-actions { display: flex; align-items: center; gap: 15px; }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background-color: var(--primary-hover); }
+    button.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    button.btn-secondary:hover { background: var(--border); }
+
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; width: 100%; flex: 1; }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 10px; }
+    input, select, textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+    input:focus, select:focus, textarea:focus { outline: 1px solid var(--primary); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+    th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; }
+    th { background: rgba(255, 102, 0, 0.08); color: var(--primary); font-weight: 700; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    .badge-admin { background: #ff4757; color: white; }
+    .badge-teacher { background: #ff6600; color: white; }
+    .badge-student { background: #57606f; color: white; }
+
+    .grade-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: rgba(255, 102, 0, 0.15);
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 4px;
+      font-weight: bold;
+      margin-right: 5px;
+    }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; overflow-x: auto; }
+    .tab-btn { background: none; border: none; color: var(--text-muted); font-size: 0.95rem; cursor: pointer; padding: 6px 12px; border-radius: 4px; }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+
+    .hidden { display: none !important; }
+    .loader { text-align: center; padding: 2rem; color: var(--primary); font-weight: bold; }
+    .alert { padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9rem; }
+    .alert-error { background: rgba(255, 71, 87, 0.2); border: 1px solid var(--danger); color: var(--danger); }
+    .alert-success { background: rgba(46, 213, 115, 0.2); border: 1px solid var(--success); color: var(--success); }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <header>
+    <div class="brand">
+      ORGAN <span>v1.0</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn-secondary" id="theme-toggle" onclick="toggleTheme()">☀️ Světlý mód</button>
+      <div id="user-pill" class="hidden" style="display: flex; align-items: center; gap: 10px;">
+        <span id="user-display" style="font-size: 0.9rem;"></span>
+        <button class="btn-secondary" onclick="logout()">Odhlásit</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div id="alert-box"></div>
+
+    <!-- PŘIHLAŠOVACÍ & REGISTRAČNÍ FORMULÁŘ -->
+    <div id="auth-section">
+      <div class="card" style="max-width: 450px; margin: 3rem auto;">
+        <h2 id="auth-title">Přihlášení do systému ORGAN</h2>
+        <form id="auth-form" onsubmit="handleAuth(event)">
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 0.8rem; color: var(--text-muted);">Uživatelské jméno</label>
+            <input type="text" id="auth-username" required autocomplete="username">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 0.8rem; color: var(--text-muted);">Heslo</label>
+            <input type="password" id="auth-password" required autocomplete="current-password">
+          </div>
+          <button type="submit" id="auth-submit-btn" style="width: 100%;">Přihlásit se</button>
+          <div style="text-align: center; margin-top: 12px;">
+            <a href="javascript:void(0)" onclick="toggleAuthMode()" id="auth-toggle-link" style="color: var(--primary); font-size: 0.85rem; text-decoration: none;">Nemáte účet? Zaregistrujte se</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- HLAVNÍ APLIKACE PO PŘIHLÁŠENÍ -->
+    <div id="app-section" class="hidden">
+      
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('grades')">Klasifikace</button>
+        <button class="tab-btn" onclick="switchTab('schedule')">Rozvrh</button>
+        <button class="tab-btn" onclick="switchTab('homework')">Domácí úkoly</button>
+        <button class="tab-btn" id="tab-classes-btn" onclick="switchTab('classes')">Třídy & Výuka</button>
+        <button class="tab-btn hidden" id="tab-admin-btn" onclick="switchTab('admin')">Správa systému (Admin)</button>
+      </div>
+
+      <div id="loader" class="loader hidden">Synchronizace se serverem ORGAN...</div>
+
+      <!-- ZÁLOŽKA: ZNÁMKY -->
+      <div id="tab-grades" class="tab-content">
+        <div class="card">
+          <h2>Moje známky</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Předmět</th>
+                <th>Zapsané známky (váha)</th>
+                <th>Vážený průměr</th>
+              </tr>
+            </thead>
+            <tbody id="student-grades-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ZÁLOŽKA: ROZVRH -->
+      <div id="tab-schedule" class="tab-content hidden">
+        <div class="card">
+          <h2>Týdenní rozvrh hodin</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Den</th>
+                <th>1. hod</th>
+                <th>2. hod</th>
+                <th>3. hod</th>
+                <th>4. hod</th>
+                <th>5. hod</th>
+              </tr>
+            </thead>
+            <tbody id="schedule-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ZÁLOŽKA: ÚKOLY -->
+      <div id="tab-homework" class="tab-content hidden">
+        <div class="card">
+          <h2>Zadané úkoly</h2>
+          <div id="homework-list"></div>
+        </div>
+      </div>
+
+      <!-- ZÁLOŽKA: UČITELSKÝ PANEL (TŘÍDY) -->
+      <div id="tab-classes" class="tab-content hidden">
+        <div class="card" id="create-class-card">
+          <h2>Vytvořit novou třídu</h2>
+          <form onsubmit="handleCreateClass(event)" class="form-grid">
+            <input type="text" id="new-class-name" placeholder="Název třídy (např. 1.A Katedra nesmyslů)" required>
+            <button type="submit">Založit třídu</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Správa vybrané třídy</h2>
+          <div style="margin-bottom: 15px;">
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Vyber třídu k obsluze:</label>
+            <select id="class-selector" onchange="renderClassDetails()"></select>
+          </div>
+
+          <div id="class-actions-wrapper" class="hidden">
+            <!-- Přidání člena do třídy -->
+            <div style="margin-bottom: 20px; padding: 12px; border: 1px dashed var(--border); border-radius: 4px;">
+              <h3 style="font-size: 0.95rem; margin-bottom: 8px;">Přiřadit uživatele do třídy</h3>
+              <form onsubmit="handleAddMember(event)" class="form-grid">
+                <select id="member-user-select" required></select>
+                <select id="member-role-select">
+                  <option value="Student">Student</option>
+                  <option value="Učitel">Učitel</option>
+                </select>
+                <button type="submit">Přiřadit člena</button>
+              </form>
+            </div>
+
+            <!-- Zápis známky -->
+            <div style="margin-bottom: 20px; padding: 12px; border: 1px dashed var(--border); border-radius: 4px;">
+              <h3 style="font-size: 0.95rem; margin-bottom: 8px;">Zapsat známku</h3>
+              <form onsubmit="handleAddGrade(event)" class="form-grid">
+                <select id="grade-student-select" required></select>
+                <input type="text" id="grade-subject" placeholder="Předmět" required>
+                <input type="number" id="grade-val" min="1" max="5" placeholder="Známka (1-5)" required>
+                <input type="number" id="grade-weight" min="1" max="10" placeholder="Váha (1-10)" required>
+                <input type="text" id="grade-note" placeholder="Poznámka / Důvod">
+                <button type="submit">Udělit známku</button>
+              </form>
+            </div>
+
+            <!-- Zadání úkolu -->
+            <div style="margin-bottom: 20px; padding: 12px; border: 1px dashed var(--border); border-radius: 4px;">
+              <h3 style="font-size: 0.95rem; margin-bottom: 8px;">Zadat domácí úkol</h3>
+              <form onsubmit="handleAddHomework(event)" class="form-grid">
+                <input type="text" id="hw-title" placeholder="Název úkolu" required>
+                <input type="text" id="hw-desc" placeholder="Popis zadání" required>
+                <input type="date" id="hw-date" required>
+                <button type="submit">Zadat úkol</button>
+              </form>
+            </div>
+
+            <!-- Zápis do rozvrhu -->
+            <div style="padding: 12px; border: 1px dashed var(--border); border-radius: 4px;">
+              <h3 style="font-size: 0.95rem; margin-bottom: 8px;">Přidat hodinu do rozvrhu třídy</h3>
+              <form onsubmit="handleAddSchedule(event)" class="form-grid">
+                <select id="sch-day">
+                  <option value="Pondělí">Pondělí</option>
+                  <option value="Úterý">Úterý</option>
+                  <option value="Středa">Středa</option>
+                  <option value="Čtvrtek">Čtvrtek</option>
+                  <option value="Pátek">Pátek</option>
+                </select>
+                <select id="sch-period">
+                  <option value="1">1. hodina</option>
+                  <option value="2">2. hodina</option>
+                  <option value="3">3. hodina</option>
+                  <option value="4">4. hodina</option>
+                  <option value="5">5. hodina</option>
+                </select>
+                <input type="text" id="sch-subject" placeholder="Předmět" required>
+                <input type="text" id="sch-room" placeholder="Učebna" required>
+                <button type="submit">Uložit do rozvrhu</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ZÁLOŽKA: ADMIN PANEL -->
+      <div id="tab-admin" class="tab-content hidden">
+        <div class="card">
+          <h2>Centrální správa uživatelů</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Uživatel</th>
+                <th>Role</th>
+                <th>Změnit roli</th>
+                <th>Resetovat heslo</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- KONFIGURACE ---
+    // SEM VLOŽ PŘESNOU URL WEBOVÉ APLIKACE Z APPS SCRIPTU:
+    const API_URL = "SEM_VLOZ_SVOJI_APPS_SCRIPT_URL";
+
+    let currentUser = null;
+    let appData = { users: [], classes: [], classMembers: [], grades: [], homeworks: [], schedule: [] };
+    let isRegisterMode = false;
+
+    // --- MOTIV (THEME) ---
+    function toggleTheme() {
+      const body = document.body;
+      const current = body.getAttribute("data-theme");
+      const next = current === "dark" ? "light" : "dark";
+      body.setAttribute("data-theme", next);
+      document.getElementById("theme-toggle").innerText = next === "dark" ? "☀️ Světlý mód" : "🌙 Tmavý mód";
+      localStorage.setItem("organ_theme", next);
+    }
+    const savedTheme = localStorage.getItem("organ_theme") || "dark";
+    document.body.setAttribute("data-theme", savedTheme);
+    document.getElementById("theme-toggle").innerText = savedTheme === "dark" ? "☀️ Světlý mód" : "🌙 Tmavý mód";
+
+    // --- NOTIFIKACE ---
+    function showAlert(msg, isError = false) {
+      const box = document.getElementById("alert-box");
+      box.innerHTML = `<div class="alert ${isError ? 'alert-error' : 'alert-success'}">${msg}</div>`;
+      setTimeout(() => { box.innerHTML = ""; }, 5000);
+    }
+
+    function showLoader(show) {
+      document.getElementById("loader").classList.toggle("hidden", !show);
+    }
+
+    // --- API VOLÁNÍ ---
+    async function apiCall(payload) {
+      showLoader(true);
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        showLoader(false);
+        return data;
+      } catch (err) {
+        showLoader(false);
+        showAlert("Chyba komunikace se serverem: " + err.message, true);
+        return { success: false, error: err.message };
+      }
+    }
+
+    // --- AUTHENTIKACE ---
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById("auth-title").innerText = isRegisterMode ? "Registrace nového studenta" : "Přihlášení do systému ORGAN";
+      document.getElementById("auth-submit-btn").innerText = isRegisterMode ? "Zaregistrovat se" : "Přihlásit se";
+      document.getElementById("auth-toggle-link").innerText = isRegisterMode ? "Již máte účet? Přihlaste se" : "Nemáte účet? Zaregistrujte se";
+    }
+
+    async function handleAuth(e) {
+      e.preventDefault();
+      const username = document.getElementById("auth-username").value.trim();
+      const password = document.getElementById("auth-password").value.trim();
+
+      if (isRegisterMode) {
+        const res = await apiCall({ action: "register", username, password });
+        if (res.success) {
+          showAlert("Účet úspěšně vytvořen! Nyní se můžeš přihlásit.");
+          toggleAuthMode();
+        } else {
+          showAlert(res.error, true);
+        }
+      } else {
+        const res = await apiCall({ action: "login", username, password });
+        if (res.success) {
+          currentUser = res.user;
+          setupUserSession();
+          await refreshData();
+        } else {
+          showAlert(res.error, true);
+        }
+      }
+    }
+
+    function setupUserSession() {
+      document.getElementById("auth-section").classList.add("hidden");
+      document.getElementById("app-section").classList.remove("hidden");
+      document.getElementById("user-pill").classList.remove("hidden");
+      document.getElementById("user-display").innerHTML = `<strong>${currentUser.username}</strong> <span class="badge badge-${currentUser.role.toLowerCase()}">${currentUser.role}</span>`;
+
+      // Řízení viditelnosti podle rolí
+      const isAdmin = currentUser.role === "Admin";
+      const isTeacher = currentUser.role === "Učitel" || isAdmin;
+
+      document.getElementById("tab-admin-btn").classList.toggle("hidden", !isAdmin);
+      document.getElementById("tab-classes-btn").classList.toggle("hidden", !isTeacher);
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById("auth-section").classList.remove("hidden");
+      document.getElementById("app-section").classList.add("hidden");
+      document.getElementById("user-pill").classList.add("hidden");
+      document.getElementById("auth-username").value = "";
+      document.getElementById("auth-password").value = "";
+    }
+
+    // --- NAČTENÍ DAT ---
+    async function refreshData() {
+      const res = await apiCall({ action: "getData" });
+      if (res.success) {
+        appData = res;
+        renderAll();
+      }
+    }
+
+    function renderAll() {
+      renderStudentGrades();
+      renderSchedule();
+      renderHomework();
+      if (currentUser.role === "Admin" || currentUser.role === "Učitel") {
+        renderClassManagement();
+      }
+      if (currentUser.role === "Admin") {
+        renderAdminTable();
+      }
+    }
+
+    // --- ZNÁMKY ---
+    function renderStudentGrades() {
+      const tbody = document.getElementById("student-grades-table");
+      tbody.innerHTML = "";
+
+      // Filtrujeme známky přihlášeného studenta (nebo všechny pro admina)
+      const myGrades = currentUser.role === "Admin" 
+        ? appData.grades 
+        : appData.grades.filter(g => String(g.student).toLowerCase() === currentUser.username.toLowerCase());
+
+      if (myGrades.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: var(--text-muted);">Zatím žádné zapsané známky.</td></tr>`;
+        return;
+      }
+
+      // Seskupení podle předmětů
+      const bySubject = {};
+      myGrades.forEach(g => {
+        if (!bySubject[g.subject]) bySubject[g.subject] = [];
+        bySubject[g.subject].push(g);
+      });
+
+      for (const subj in bySubject) {
+        const grades = bySubject[subj];
+        let totalVal = 0;
+        let totalWeight = 0;
+
+        const gradeBadges = grades.map(g => {
+          totalVal += Number(g.grade) * Number(g.weight);
+          totalWeight += Number(g.weight);
+          return `<span class="grade-box" title="${g.note || 'Bez poznámky'} (${g.date})">${g.grade}</span><span style="font-size:0.75rem; color:var(--text-muted); margin-right:8px;">(v.${g.weight})</span>`;
+        }).join(" ");
+
+        const avg = totalWeight > 0 ? (totalVal / totalWeight).toFixed(3) : "-";
+
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${subj}</strong></td>
+            <td>${gradeBadges}</td>
+            <td><strong>${avg}</strong></td>
+          </tr>
+        `;
+      }
+    }
+
+    // --- ROZVRH ---
+    function renderSchedule() {
+      const tbody = document.getElementById("schedule-table");
+      tbody.innerHTML = "";
+
+      const days = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek"];
+      days.forEach(day => {
+        let row = `<tr><td><strong>${day}</strong></td>`;
+        for (let period = 1; period <= 5; period++) {
+          const item = appData.schedule.find(s => s.day === day && Number(s.period) === period);
+          row += `<td>${item ? `<strong>${item.subject}</strong><br><small style="color:var(--text-muted)">${item.room}</small>` : '-'}</td>`;
+        }
+        row += `</tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    // --- ÚKOLY ---
+    function renderHomework() {
+      const container = document.getElementById("homework-list");
+      container.innerHTML = "";
+
+      if (appData.homeworks.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-muted);">Aktuálně nejsou zadány žádné domácí úkoly.</p>`;
+        return;
+      }
+
+      appData.homeworks.forEach(hw => {
+        container.innerHTML += `
+          <div style="border-left: 3px solid var(--primary); padding: 8px 12px; margin-bottom: 10px; background: rgba(255,102,0,0.05);">
+            <div style="display:flex; justify-content:space-between;">
+              <strong>${hw.title}</strong>
+              <small style="color: var(--danger); font-weight:bold;">Termín: ${hw.deadline}</small>
+            </div>
+            <p style="font-size: 0.85rem; margin-top: 4px;">${hw.description}</p>
+          </div>
+        `;
+      });
+    }
+
+    // --- SPRÁVA TŘÍD (UČITEL / ADMIN) ---
+    function renderClassManagement() {
+      const sel = document.getElementById("class-selector");
+      const currentVal = sel.value;
+      sel.innerHTML = `<option value="">-- Vyber třídu --</option>`;
+
+      // Třídy, které učitel učí nebo které založil (Admin vidí všechny)
+      const allowedClasses = currentUser.role === "Admin"
+        ? appData.classes
+        : appData.classes.filter(c => 
+            c.creator === currentUser.username || 
+            appData.classMembers.some(m => m.class_id === c.id && m.username === currentUser.username && m.role === "Učitel")
+          );
+
+      allowedClasses.forEach(c => {
+        sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+      });
+
+      if (currentVal) sel.value = currentVal;
+      renderClassDetails();
+    }
+
+    function renderClassDetails() {
+      const classId = document.getElementById("class-selector").value;
+      const actionsWrapper = document.getElementById("class-actions-wrapper");
+      if (!classId) {
+        actionsWrapper.classList.add("hidden");
+        return;
+      }
+      actionsWrapper.classList.remove("hidden");
+
+      // Naplnění výběru uživatelů
+      const userSelect = document.getElementById("member-user-select");
+      userSelect.innerHTML = appData.users.map(u => `<option value="${u.username}">${u.username} (${u.role})</option>`).join("");
+
+      // Naplnění studentů pro známkování v této třídě
+      const studentSelect = document.getElementById("grade-student-select");
+      const membersInClass = appData.classMembers.filter(m => m.class_id === classId);
+      studentSelect.innerHTML = membersInClass.map(m => `<option value="${m.username}">${m.username} (${m.role})</option>`).join("");
+    }
+
+    async function handleCreateClass(e) {
+      e.preventDefault();
+      const name = document.getElementById("new-class-name").value.trim();
+      const res = await apiCall({ action: "createClass", name, creator: currentUser.username });
+      if (res.success) {
+        showAlert("Třída byla vytvořena!");
+        document.getElementById("new-class-name").value = "";
+        await refreshData();
+      }
+    }
+
+    async function handleAddMember(e) {
+      e.preventDefault();
+      const classId = document.getElementById("class-selector").value;
+      const username = document.getElementById("member-user-select").value;
+      const roleInClass = document.getElementById("member-role-select").value;
+
+      const res = await apiCall({ action: "addClassMember", classId, username, roleInClass });
+      if (res.success) {
+        showAlert(`Uživatel ${username} byl přidán do třídy.`);
+        await refreshData();
+      } else {
+        showAlert(res.error, true);
+      }
+    }
+
+    async function handleAddGrade(e) {
+      e.preventDefault();
+      const classId = document.getElementById("class-selector").value;
+      const student = document.getElementById("grade-student-select").value;
+      const subject = document.getElementById("grade-subject").value.trim();
+      const grade = document.getElementById("grade-val").value;
+      const weight = document.getElementById("grade-weight").value;
+      const note = document.getElementById("grade-note").value.trim();
+
+      const res = await apiCall({ action: "addGrade", classId, student, subject, grade, weight, note });
+      if (res.success) {
+        showAlert("Známka byla úspěšně udělena!");
+        document.getElementById("grade-note").value = "";
+        await refreshData();
+      }
+    }
+
+    async function handleAddHomework(e) {
+      e.preventDefault();
+      const classId = document.getElementById("class-selector").value;
+      const title = document.getElementById("hw-title").value.trim();
+      const description = document.getElementById("hw-desc").value.trim();
+      const deadline = document.getElementById("hw-date").value;
+
+      const res = await apiCall({ action: "addHomework", classId, title, description, deadline });
+      if (res.success) {
+        showAlert("Domácí úkol byl zadán!");
+        document.getElementById("hw-title").value = "";
+        document.getElementById("hw-desc").value = "";
+        await refreshData();
+      }
+    }
+
+    async function handleAddSchedule(e) {
+      e.preventDefault();
+      const classId = document.getElementById("class-selector").value;
+      const day = document.getElementById("sch-day").value;
+      const period = document.getElementById("sch-period").value;
+      const subject = document.getElementById("sch-subject").value.trim();
+      const room = document.getElementById("sch-room").value.trim();
+
+      const res = await apiCall({ action: "addSchedule", classId, day, period, subject, room });
+      if (res.success) {
+        showAlert("Hodina přidána do rozvrhu!");
+        await refreshData();
+      }
+    }
+
+    // --- ADMIN PANEL ---
+    function renderAdminTable() {
+      const tbody = document.getElementById("admin-users-table");
+      tbody.innerHTML = "";
+
+      appData.users.forEach(u => {
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${u.username}</strong></td>
+            <td><span class="badge badge-${u.role.toLowerCase()}">${u.role}</span></td>
+            <td>
+              <select onchange="updateUserRole('${u.username}', this.value)" style="width:auto; padding:4px;">
+                <option value="Student" ${u.role === 'Student' ? 'selected' : ''}>Student</option>
+                <option value="Učitel" ${u.role === 'Učitel' ? 'selected' : ''}>Učitel</option>
+                <option value="Admin" ${u.role === 'Admin' ? 'selected' : ''}>Admin</option>
+              </select>
+            </td>
+            <td>
+              <button class="btn-secondary" onclick="promptResetPassword('${u.username}')" style="padding:4px 8px; font-size:0.8rem;">Změnit heslo</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    async function updateUserRole(targetUser, newRole) {
+      const res = await apiCall({ action: "adminUpdateRole", targetUser, newRole });
+      if (res.success) {
+        showAlert(`Role uživatele ${targetUser} změněna na ${newRole}.`);
+        await refreshData();
+      }
+    }
+
+    async function promptResetPassword(targetUser) {
+      const newPassword = prompt(`Zadej nové heslo pro uživatele ${targetUser}:`);
+      if (!newPassword) return;
+      const res = await apiCall({ action: "adminUpdatePassword", targetUser, newPassword });
+      if (res.success) {
+        showAlert(`Heslo uživatele ${targetUser} bylo změněno.`);
+      }
+    }
+
+    // --- PŘEPÍNÁNÍ ZÁLOŽEK ---
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+      
+      document.getElementById(`tab-${tabId}`).classList.remove("hidden");
+      event.target.classList.add("active");
+    }
+  </script>
+</body>
+</html>
